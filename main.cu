@@ -131,8 +131,8 @@ static void unfold_input(double input[28][28], double unfolded[24*24][5*5])
 
 static void learn()
 {
-	static cublasHandle_t blas;
-	cublasCreate(&blas);
+	// static cublasHandle_t blas;
+	// cublasCreate(&blas);
 
 	float err;
 	int iter = 50;
@@ -155,7 +155,8 @@ static void learn()
 
 			// Euclid distance of train_set[i]
 			makeError<<<10, 1>>>(l_f.d_preact, l_f.output, train_set[i].label, 10);
-			cublasSnrm2(blas, 10, l_f.d_preact, 1, &tmp_err);
+			// cublasSnrm2(blas, 10, l_f.d_preact, 1, &tmp_err);
+			tmp_err = vector_norm2(10, l_f.d_preact, 1);
 			err += tmp_err;
 
 			time_taken += back_pass();

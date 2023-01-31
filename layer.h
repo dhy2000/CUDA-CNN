@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <vector>
 #include <memory>
-#include <cublas_v2.h>
+// #include <cublas_v2.h>
 #include <cuda.h>
 
 #ifndef LAYER_H
@@ -40,6 +40,7 @@ __device__ float step_function(float v);
 __global__ void apply_step_function(float *input, float *output, const int N);
 __global__ void makeError(float *err, float *output, unsigned int Y, const int N);
 __global__ void apply_grad(float *output, float *grad, const int N);
+__global__ void nrm2(float *x, int incx, float *result); // implementation instead of cublasSnrm2
 
 // Forward propagation kernels
 __global__ void fp_preact_c1(float input[28][28], float preact[6][24][24], float weight[6][5][5]);
@@ -60,3 +61,6 @@ __global__ void bp_output_c1(float d_output[6][24][24], float n_weight[1][4][4],
 __global__ void bp_preact_c1(float d_preact[6][24][24], float d_output[6][24][24], float preact[6][24][24]);
 __global__ void bp_weight_c1(float d_weight[6][5][5], float d_preact[6][24][24], float p_output[28][28]);
 __global__ void bp_bias_c1(float bias[6], float d_preact[6][24][24]);
+
+// Utility host functions
+float vector_norm2(int siz, float *vec, int incx);

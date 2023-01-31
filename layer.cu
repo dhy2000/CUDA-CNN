@@ -112,6 +112,13 @@ __global__ void apply_grad(float *output, float *grad, const int N)
 	}
 }
 
+__global__ void nrm2(float *x, int incx, float *result)
+{
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	const int j = i * incx;
+	atomicAdd(result, sqrtf(x[j] * x[j]));
+}
+
 __global__ void fp_preact_c1(float input[28][28], float preact[6][24][24], float weight[6][5][5])
 {
 	const int pos = blockIdx.x * blockDim.x + threadIdx.x;
@@ -395,4 +402,17 @@ __global__ void bp_bias_c1(float bias[6], float d_preact[6][24][24])
 
 		atomicAdd(&bias[i1], dt * d_preact[i1][i2][i3] / d);
 	}
+}
+
+float vector_norm2(int siz, float *vec, int incx) {
+	// vec is at device
+	float res = 0;
+	float *cres;
+	cudaMalloc(&cres, sizeof(float));
+	cudaMemcpy(cres, &res, sizeof(float), cudaMemcpyHostToDevice);
+	nrm2<<<siz, 1>>>(vec, incx, cres);
+	cudaDeviceSynchronize();
+	cudaMemcpy(&res, cres, sizeof(float), cudaMemcpyDeviceToHost);
+	cudaFree(cres);
+	return res;
 }
