@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <vector>
 #include <memory>
-// #include <cublas_v2.h>
+#include <cublas_v2.h>
 #include <cuda.h>
 
 #ifndef LAYER_H

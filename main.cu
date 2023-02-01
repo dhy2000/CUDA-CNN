@@ -131,8 +131,8 @@ static void unfold_input(double input[28][28], double unfolded[24*24][5*5])
 
 static void learn()
 {
-	// static cublasHandle_t blas;
-	// cublasCreate(&blas);
+	static cublasHandle_t blas;
+	cublasCreate(&blas);
 
 	float err;
 	int iter = 50;
@@ -155,8 +155,13 @@ static void learn()
 
 			// Euclid distance of train_set[i]
 			makeError<<<10, 1>>>(l_f.d_preact, l_f.output, train_set[i].label, 10);
-			// cublasSnrm2(blas, 10, l_f.d_preact, 1, &tmp_err);
-			tmp_err = vector_norm2(10, l_f.d_preact, 1);
+			float preact[10];
+			cudaMemcpy(preact, l_f.d_preact, 10 * sizeof(float), cudaMemcpyDeviceToHost);
+			printf("[iter=%d, i=%d] l_f.d_preact=[%f %f %f %f %f %f %f %f %f %f]", iter, i, preact[0], preact[1], preact[2], preact[3], preact[4], preact[5], preact[6], preact[7], preact[8], preact[9]);
+
+			cublasSnrm2(blas, 10, l_f.d_preact, 1, &tmp_err);
+			float tmp_err_2 = vector_norm2(10, l_f.d_preact, 1);
+			printf("err_cublas = %f, err_nocublas = %f\n", tmp_err, tmp_err_2);
 			err += tmp_err;
 
 			time_taken += back_pass();
