@@ -2,6 +2,7 @@
 #define MNIST_DOUBLE
 #include "mnist.h"
 #include "layer.h"
+#include "dump.h"
 
 #include <cuda.h>
 #include <cstdio>
@@ -28,6 +29,22 @@ static inline void loaddata()
 		&train_set, &train_cnt);
 	mnist_load("data/t10k-images.idx3-ubyte", "data/t10k-labels.idx1-ubyte",
 		&test_set, &test_cnt);
+	fprintf(stderr, "train_cnt = %d, test_cnt = %d\n", train_cnt, test_cnt);
+	// dump input params
+	FileWriter train_writer("train_input_params.txt");
+	for (int i = 0; i < train_cnt; i++) {
+		train_writer.writeDouble((double *)train_set[i].data, 28 * 28);
+	}
+	FileWriter test_writer("test_input_params.txt");
+	for (int i = 0; i < test_cnt; i++) {
+		test_writer.writeDouble((double *)test_set[i].data, 28 * 28);
+	}
+}
+
+static inline void dump_model_layer(const int size, const float *d_data, FileWriter& writer) {
+	static float h_buf[8192];
+	cudaMemcpy(h_buf, d_data, size * sizeof(float), cudaMemcpyDeviceToHost);
+	writer.writeFloat(h_buf, size);
 }
 
 int main(int argc, const  char **argv)
@@ -42,6 +59,22 @@ int main(int argc, const  char **argv)
 
 	loaddata();
 	learn();
+
+	// dump model params
+	FileWriter model_writer("model_params.txt");
+	// conv layer weight
+	dump_model_layer(l_c1.M * l_c1.N, l_c1.weight, model_writer);
+	// conv layer bias
+	dump_model_layer(l_c1.N, l_c1.bias, model_writer);
+	// pool layer weight
+	dump_model_layer(l_s1.M * l_s1.N, l_s1.weight, model_writer);
+	// pool layer bias
+	dump_model_layer(l_s1.N, l_s1.bias, model_writer);
+	// full conn layer weight
+	dump_model_layer(l_f.M * l_f.N, l_f.weight, model_writer);
+	// full conn layer bias
+	dump_model_layer(l_f.N, l_f.bias, model_writer);
+
 	test();
 
 	return 0;
@@ -198,12 +231,14 @@ static unsigned int classify(double data[28][28])
 // Perform forward propagation of test data
 static void test()
 {
+	FileWriter test_writer("test_expected_results.txt");
 	int error = 0;
 
 	for (int i = 0; i < test_cnt; ++i) {
 		if (classify(test_set[i].data) != test_set[i].label) {
 			++error;
 		}
+		dump_model_layer(10, l_f.output, test_writer);
 	}
 
 	fprintf(stdout, "Error Rate: %.2lf%%\n",
