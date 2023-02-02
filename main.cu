@@ -66,9 +66,9 @@ int main(int argc, const  char **argv)
 	dump_model_layer(l_c1.M * l_c1.N, l_c1.weight, model_writer);
 	// conv layer bias
 	dump_model_layer(l_c1.N, l_c1.bias, model_writer);
-	// pool layer weight
+	// subsample layer weight
 	dump_model_layer(l_s1.M * l_s1.N, l_s1.weight, model_writer);
-	// pool layer bias
+	// subsample layer bias
 	dump_model_layer(l_s1.N, l_s1.bias, model_writer);
 	// full conn layer weight
 	dump_model_layer(l_f.M * l_f.N, l_f.weight, model_writer);

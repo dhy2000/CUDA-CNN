@@ -18,13 +18,13 @@ Floating-Point data:
 
 - MNIST Train Input: $28 \times 28 \times \textsf{train\_cnt} = 47040000$
 - MNIST Test Input: $28 \times 28 \times \textsf{test\_cnt} = 7840000$
-- Convolution Layer
+- Convolution Layer `c1`
   - 6 kernels, per $5 \times 5$, total $5 \times 5 \times 6=150$
   - 6 bias, size: $6$
-- Pooling Layer
+- Subsample Layer `s1`
   - one $4 \times 4$ weight matrix, total $4 \times 4 = 16$
   - one scalar bias, total $1$
-- Full Connection Layer
+- Full Connection Layer `f`
   - weight matrix $6 \times 6 \times 6 \times 10 = 2160$
   - bias vector $10$
 - MNIST Train Output: $10 \times \textsf{train\_cnt} = 600000$
