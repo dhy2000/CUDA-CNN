@@ -58,3 +58,12 @@ Dump data to plain text files:
   - format: vector of float, only one line
   - content: output hidden vector of full-conn layer, probability of each label
   - size: $10 \times \mathsf{test\_cnt} = 100000$
+
+## Debug Data
+
+Debug data of model forward-pass in test stage is also dumped as follows:
+
+- `debug_<i>.txt`
+  - the i-th input of test dataset
+  - output of each layer
+  - to reduce amount, only first 10 runs is dumped.

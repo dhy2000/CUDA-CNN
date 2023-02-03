@@ -19,6 +19,8 @@ public:
     void writeFloat(const float *data, const int size);
     void writeDouble(const double *data, const int size);
     void writeInteger(const int *data, const int size);
+
+    void writeLine(const string& s);
 };
 
 

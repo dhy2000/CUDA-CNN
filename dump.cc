@@ -39,3 +39,10 @@ void FileWriter::writeInteger(const int *data, const int size) {
         this->count++;
     }
 }
+
+void FileWriter::writeLine(const string& s) {
+    fputc('\n', this->fp);
+    fputs(s.c_str(), this->fp);
+    fputc('\n', this->fp);
+    print_flag = false;
+}

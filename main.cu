@@ -18,9 +18,9 @@ static Layer l_s1 = Layer(4*4, 1, 6*6*6);
 static Layer l_f = Layer(6*6*6, 10, 10);
 
 static void learn();
-static unsigned int classify(double data[28][28]);
-static void test();
-static double forward_pass(double data[28][28]);
+static unsigned int classify(double data[28][28], FileWriter * const debug);
+static void test(const char *result_name, const char *debug_name);
+static double forward_pass(double data[28][28], FileWriter * const debug);
 static double back_pass();
 
 static inline void loaddata()
@@ -75,13 +75,14 @@ int main(int argc, const  char **argv)
 	// full conn layer bias
 	dump_model_layer(l_f.N, l_f.bias, model_writer);
 
-	test();
+	test("test_expected_results.txt", "debug");
+	// test("test2_expected_results.txt", "debug2"); // re-produce to ensure the result is certain
 
 	return 0;
 }
 
 // Forward propagation of a single row in dataset
-static double forward_pass(double data[28][28])
+static double forward_pass(double data[28][28], FileWriter * const debug)
 {
 	float input[28][28];
 
@@ -100,18 +101,58 @@ static double forward_pass(double data[28][28])
 	start = clock();
 
 	l_input.setOutput((float *)input);
-	
+	if (debug != NULL) {
+		debug->writeLine("Input:");
+		dump_model_layer(l_input.O, l_input.output, *debug);
+	}
+
 	fp_preact_c1<<<64, 64>>>((float (*)[28])l_input.output, (float (*)[24][24])l_c1.preact, (float (*)[5][5])l_c1.weight);
+	if (debug != NULL) {
+		debug->writeLine("Conv-Kern:");
+		dump_model_layer(l_c1.O, l_c1.preact, *debug);
+	}
 	fp_bias_c1<<<64, 64>>>((float (*)[24][24])l_c1.preact, l_c1.bias);
+	if (debug != NULL) {
+		debug->writeLine("Conv-Bias:");
+		dump_model_layer(l_c1.O, l_c1.preact, *debug);
+	}
 	apply_step_function<<<64, 64>>>(l_c1.preact, l_c1.output, l_c1.O);
+	if (debug != NULL) {
+		debug->writeLine("Conv-Actv:");
+		dump_model_layer(l_c1.O, l_c1.output, *debug);
+	}
 
 	fp_preact_s1<<<64, 64>>>((float (*)[24][24])l_c1.output, (float (*)[6][6])l_s1.preact, (float (*)[4][4])l_s1.weight);
+	if (debug != NULL) {
+		debug->writeLine("Samp-WSum:");
+		dump_model_layer(l_s1.O, l_s1.preact, *debug);
+	}
 	fp_bias_s1<<<64, 64>>>((float (*)[6][6])l_s1.preact, l_s1.bias);
+	if (debug != NULL) {
+		debug->writeLine("Samp-Bias:");
+		dump_model_layer(l_s1.O, l_s1.preact, *debug);
+	}
 	apply_step_function<<<64, 64>>>(l_s1.preact, l_s1.output, l_s1.O);
+	if (debug != NULL) {
+		debug->writeLine("Samp-Actv:");
+		dump_model_layer(l_s1.O, l_s1.output, *debug);
+	}
 
 	fp_preact_f<<<64, 64>>>((float (*)[6][6])l_s1.output, l_f.preact, (float (*)[6][6][6])l_f.weight);
+	if (debug != NULL) {
+		debug->writeLine("Full-Conn:");
+		dump_model_layer(l_f.O, l_f.preact, *debug);
+	}
 	fp_bias_f<<<64, 64>>>(l_f.preact, l_f.bias);
+	if (debug != NULL) {
+		debug->writeLine("Full-Bias:");
+		dump_model_layer(l_f.O, l_f.preact, *debug);
+	}
 	apply_step_function<<<64, 64>>>(l_f.preact, l_f.output, l_f.O);
+	if (debug != NULL) {
+		debug->writeLine("Full-Actv:");
+		dump_model_layer(l_f.O, l_f.output, *debug);
+	}
 	
 	end = clock();
 	return ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -180,7 +221,7 @@ static void learn()
 		for (int i = 0; i < train_cnt; ++i) {
 			float tmp_err;
 
-			time_taken += forward_pass(train_set[i].data);
+			time_taken += forward_pass(train_set[i].data, NULL);
 
 			l_f.bp_clear();
 			l_s1.bp_clear();
@@ -209,11 +250,11 @@ static void learn()
 
 
 // Returns label of given data (0-9)
-static unsigned int classify(double data[28][28])
+static unsigned int classify(double data[28][28], FileWriter * const debug)
 {
 	float res[10];
 
-	forward_pass(data);
+	forward_pass(data, debug);
 
 	unsigned int max = 0;
 
@@ -229,16 +270,25 @@ static unsigned int classify(double data[28][28])
 }
 
 // Perform forward propagation of test data
-static void test()
+static void test(const char *result_name, const char *debug_name)
 {
-	FileWriter test_writer("test_expected_results.txt");
+	FileWriter result_writer(result_name);
 	int error = 0;
+	char buf[128];
 
 	for (int i = 0; i < test_cnt; ++i) {
-		if (classify(test_set[i].data) != test_set[i].label) {
+		sprintf(buf, "%s_%d.txt", debug_name, i);
+		FileWriter *debug_writer = NULL;
+		if (i < 10) {
+			debug_writer = new FileWriter(buf);
+		}
+		if (classify(test_set[i].data, debug_writer) != test_set[i].label) {
 			++error;
 		}
-		dump_model_layer(10, l_f.output, test_writer);
+		if (debug_writer != NULL) {
+			delete debug_writer;
+		}
+		dump_model_layer(10, l_f.output, result_writer);
 	}
 
 	fprintf(stdout, "Error Rate: %.2lf%%\n",
